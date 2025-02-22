@@ -14,8 +14,10 @@
     "build-only": "vite build",
     "type-check": "vue-tsc --build --force",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
-    "predeploy": "git branch -D gh-pages || true",
-    "deploy": "gh-pages -d dist -f"
+    // "predeploy": "git branch -D gh-pages || true",
+    // "deploy": "gh-pages -d dist -f"
+    "predeploy": "yarn run build-only",
+    "deploy": "gh-pages -d build-only"
   },
   "dependencies": {
     "@createjs/tweenjs": "^2.0.0-beta.4",
