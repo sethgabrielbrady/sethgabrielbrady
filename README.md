@@ -26,7 +26,7 @@ Welcome to my GitHub Pages site! This project showcases various features and tec
 
 ## 🚀 Getting Started
 
-To explore the code and see how everything works, visit the [GitHub repository](https://github.com/yourusername/yourrepository).
+To explore the code and see how everything works, visit the [GitHub repository](https://github.com/sethgabrielbrady/sethgabrielbrady).
 
 ## 📚 Learn More
 
@@ -36,7 +36,7 @@ To explore the code and see how everything works, visit the [GitHub repository](
 
 ## 📬 Contact
 
-Feel free to reach out to me at [your-email@example.com](mailto:your-email@example.com) for any questions or feedback.
+Feel free to reach out to me at [your-email@example.com](mailto:sethgabrielbrady@gmail.com) for any questions or feedback.
 
 ## 📜 License
 
