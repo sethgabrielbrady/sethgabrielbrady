@@ -1,6 +1,6 @@
 {
-  "name": "portfolio",
-  "version": "0.0.0",
+  "name": "sethgabrielbrady",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "main": "src/main.ts",
@@ -13,7 +13,8 @@
     "test:e2e:dev": "start-server-and-test 'vite dev --port 4173' http://localhost:4173 'cypress open --e2e'",
     "build-only": "vite build",
     "type-check": "vue-tsc --build --force",
-    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore"
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
+    "deploy": "gh-pages -d dist -f"
   },
   "dependencies": {
     "@createjs/tweenjs": "^2.0.0-beta.4",
@@ -46,6 +47,7 @@
     "eslint": "^8.57.0",
     "eslint-plugin-cypress": "^3.3.0",
     "eslint-plugin-vue": "^9.23.0",
+    "gh-pages": "^6.3.0",
     "jsdom": "^24.1.0",
     "npm-run-all2": "^6.2.0",
     "start-server-and-test": "^2.0.4",
