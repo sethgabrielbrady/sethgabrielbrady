@@ -36,7 +36,7 @@ To explore the code and see how everything works, visit the [GitHub repository](
 
 ## 📬 Contact
 
-Feel free to reach out to me at [your-email@example.com](mailto:sethgabrielbrady@gmail.com) for any questions or feedback.
+Feel free to [email me](mailto:sethgabrielbrady@gmail.com) for any questions or feedback.
 
 ## 📜 License
 
