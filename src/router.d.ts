@@ -8,6 +8,8 @@ declare module 'vue-router' {
 declare module '@/router' {
   import { RouteRecordRaw } from 'vue-router';
 
-  const routes: RouteRecordRaw[];
+  type NewType = RouteRecordRaw;
+
+  const routes: NewType[];
   export default routes;
 }
