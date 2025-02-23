@@ -30,3 +30,5 @@ README.old
 
 *.tsbuildinfo
 
+.env
+.env.production
