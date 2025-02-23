@@ -9,7 +9,7 @@ dotenv.config()
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: process.env.VITE_BASE_URL || '/',
+  base: './',
   plugins: [
     vue(),
     vueDevTools(),
@@ -22,3 +22,6 @@ export default defineConfig({
     }
   }
 })
+
+
+//base: process.env.VITE_BASE_URL || '/',
