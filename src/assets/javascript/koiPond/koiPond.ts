@@ -72,7 +72,6 @@ function loadModel(modelObj: { path: string; scale: number; animation: boolean; 
   });
 }
 
-
 function init() {
   scene.background = new THREE.Color( 0x222233 );
 
@@ -122,7 +121,6 @@ function init() {
 
   const container: HTMLElement = document.getElementById("koiPond")!;
   container.appendChild(renderer.domElement);
-
 
 
   koiGroup.position.set(0.0, -0.1, 0.0);
