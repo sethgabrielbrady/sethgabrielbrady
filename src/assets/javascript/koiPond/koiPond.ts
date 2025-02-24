@@ -76,10 +76,12 @@ function init() {
   scene.background = new THREE.Color( 0x222233 );
 
   const aspect: number = (window.innerWidth / window.innerHeight);
-  const distance: number = 4;
+  const distance: number = .5;
+  //const distance: number = 4;
 
-  camera = new THREE.OrthographicCamera(- distance * aspect, distance * aspect, distance, - distance, 1, 1000);
-  camera.position.set( 5, 5, 5 ); // all components equal
+
+  camera = new THREE.OrthographicCamera(- distance * aspect, distance * aspect, distance, - distance, .1, 1000);
+  camera.position.set( 0, 4, 0 ); // all components equal
   camera.lookAt( scene.position ); // or the origin
 
   const lightCube = new THREE.Mesh( new THREE.BoxGeometry( 0.5, 0.5, 0.5 ), new THREE.MeshBasicMaterial( { color: 0xffffff } ) );
@@ -136,10 +138,23 @@ function init() {
       position: { x:koiGroup.position.x, y: koiGroup.position.y, z: koiGroup.position.z },
       rotation: { x: 0, y: 0, z: 0 }
     }
+    const rngColor = 0xffffff * Math.random();
+    const redKoi = 0xff0000;
+    const orangeKoi = 0xffa500;
+    const yellowKoi = 0xffff00;
+    const blackKoi = 0xcccccc;
+    const whiteKoi = 0xffff;
+    const koiColors = [redKoi, orangeKoi, blackKoi, redKoi, whiteKoi];
+    const randomColor = koiColors[Math.floor(Math.random() * koiColors.length)];
     loadModel(koi).then(model => {
       if (model) {
         const koiThreeObj = new THREE.Object3D();
         koiThreeObj.add(model);
+        model.traverse((child) => {
+          if ((child as THREE.Mesh).isMesh) {
+            ((child as THREE.Mesh).material as THREE.MeshPhysicalMaterial).color.set(new THREE.Color(randomColor));
+          }
+        });
         koiGroup.add(koiThreeObj);
         koiArray.push(koiThreeObj);
       }
@@ -181,7 +196,7 @@ function init() {
     upodateKoiDeplymentInterval = true;
   }, 10000);
 
-  let koiDeploymentInterval = rngNum(500, 1000);
+  let koiDeploymentInterval = rngNum(500, 600);
   setInterval(() => {
     if (upodateKoiDeplymentInterval) {
       koiDeploymentInterval = rngNum(10000, 20000);
