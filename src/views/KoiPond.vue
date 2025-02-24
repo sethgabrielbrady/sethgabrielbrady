@@ -1,5 +1,5 @@
 <script>
-  import { koiPond } from '@/assets/javascript/koiPond/koiPond.ts'
+  import { koiPond } from '@/assets/javascript/koiPond/koiPond'
 
   export default {
     setup() {
