@@ -138,13 +138,10 @@ function init() {
       position: { x:koiGroup.position.x, y: koiGroup.position.y, z: koiGroup.position.z },
       rotation: { x: 0, y: 0, z: 0 }
     }
-    const rngColor = 0xffffff * Math.random();
     const redKoi = 0xff0000;
     const orangeKoi = 0xffa500;
-    const yellowKoi = 0xffff00;
-    const blackKoi = 0xcccccc;
-    const whiteKoi = 0xffff;
-    const koiColors = [redKoi, orangeKoi, blackKoi, redKoi, whiteKoi];
+    const whiteKoi = 0xffffff;
+    const koiColors = [redKoi, orangeKoi, whiteKoi];
     const randomColor = koiColors[Math.floor(Math.random() * koiColors.length)];
     loadModel(koi).then(model => {
       if (model) {
