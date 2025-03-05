@@ -32,3 +32,7 @@ README.old
 
 .env
 .env.production
+
+/src/assets/javascript/voxel
+/src/views/Voxel.vue
+/src/views/GameBoard.vue
