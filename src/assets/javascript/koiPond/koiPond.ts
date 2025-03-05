@@ -5,13 +5,10 @@ import * as TWEEN from '@tweenjs/tween.js';
 import { createText } from 'three/examples/jsm/webxr/Text2D.js';
 
 
-
 let showHelper = false;
 let camera: THREE.OrthographicCamera;
 let renderer: THREE.WebGLRenderer;
 let delta: number = 0;
-// let xAxis = speed * delta;
-// let yAxis = -1 + (speed * delta);
 
 
 const clock: THREE.Clock = new THREE.Clock();
@@ -42,9 +39,6 @@ function loadModel(modelObj: { path: string; scale: number; animation: boolean; 
         model.rotateX(modelObj.rotation.x);
         model.rotateY(modelObj.rotation.y);
         model.rotateZ(modelObj.rotation.z);
-
-
-
         model.position.copy(modelObj.position);
         model.castShadow = true;
         //scene.add(model);
@@ -76,13 +70,13 @@ function init() {
   scene.background = new THREE.Color( 0x222233 );
 
   const aspect: number = (window.innerWidth / window.innerHeight);
-  const distance: number = .5;
-  //const distance: number = 4;
+  const distance: number = 4;
 
 
   camera = new THREE.OrthographicCamera(- distance * aspect, distance * aspect, distance, - distance, .1, 1000);
-  camera.position.set( 0, 4, 0 ); // all components equal
+  camera.position.set( 5,5,5 ); // all components equal
   camera.lookAt( scene.position ); // or the origin
+
 
   const lightCube = new THREE.Mesh( new THREE.BoxGeometry( 0.5, 0.5, 0.5 ), new THREE.MeshBasicMaterial( { color: 0xffffff } ) );
   const light: THREE.DirectionalLight = new THREE.DirectionalLight( 0xffffff, 2 );
@@ -98,12 +92,7 @@ function init() {
     directionLight.castShadow = true;
     directionLight.shadow.mapSize.width = 16;
     directionLight.shadow.mapSize.height = 8;
-    // directionLight.shadow.camera.near = 0.5;
-    // directionLight.shadow.camera.far = 10;
-    // directionLight.shadow.camera.left = -20;
-    // directionLight.shadow.camera.right = 20;
-    // directionLight.shadow.camera.top = 20;
-    // directionLight.shadow.camera.bottom = -5;
+
     scene.add( directionLight );
     scene.add( new THREE.AmbientLight( 0xffffff, 0.5 ) );
     //scene.add( new THREE.HemisphereLight( 0xffffff, 0x999999, 1 ) );
@@ -345,8 +334,6 @@ function init() {
     });
   }
   scene.add(lilipadsGroup2);
-
-
 
   const raccoon = {
     scale: .5,

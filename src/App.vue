@@ -4,7 +4,7 @@
 
 <template>
   <div style="position:relative; left: 0; top:0;">
-    <RouterLink class="routerlink" style="left:10px" to="/">Home</RouterLink>
+    <!-- <RouterLink class="routerlink" style="left:10px" to="/">Home</RouterLink> -->
     <RouterView />
   </div>
 </template>
