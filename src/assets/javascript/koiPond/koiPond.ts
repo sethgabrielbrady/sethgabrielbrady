@@ -192,7 +192,9 @@ function init() {
     const rngKoi = koiArray[rngKoiIndex];
     if (!koiMovingArray.includes(rngKoi)) {  //if koiMovingArray does not contian the koi, add it to the array
       koiMovingArray.push(rngKoi);
-      randomizeKoiMovement(rngKoi);
+      if (rngKoi) {
+        randomizeKoiMovement(rngKoi);
+      }
     }
   }, koiDeploymentInterval);
 
