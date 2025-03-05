@@ -362,6 +362,7 @@ function init() {
   }
   loadModel(pond).then(model => {
     if (model) {
+      model.renderOrder = - Infinity; // ensures pond is rendered first
       scene.add(model);
     }
   });
@@ -495,15 +496,17 @@ function init() {
 
 
   const waterColor = 0x00FFFF;
-  const waterGeometry = new THREE.PlaneGeometry( 4.75, 4.85);
+  const waterGeometry = new THREE.PlaneGeometry( 4.50, 4.85);
   const waterMaterial = new THREE.MeshPhongMaterial({
                                                   color: waterColor,
                                                   transparent: true,
                                                   opacity: 0.5,
+                                                  depthWrite: false,
                                                 });
   const water = new THREE.Mesh( waterGeometry, waterMaterial );
   water.rotation.x = - Math.PI / 2;
   water.position.y = -0.00019;
+
   scene.add( water );
 
   const bottomColor = 0x4C4E27;
