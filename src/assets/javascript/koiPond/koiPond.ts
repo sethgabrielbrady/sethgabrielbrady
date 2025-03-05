@@ -100,7 +100,7 @@ function init() {
   renderer = new THREE.WebGLRenderer( {
     antialias: false,
     alpha: true,
-    precision: "lowp",
+    precision: "mediump",
     powerPreference: "high-performance",
   });
 
