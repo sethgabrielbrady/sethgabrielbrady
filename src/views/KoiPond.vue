@@ -47,9 +47,9 @@
   }
 
   .text-window {
-    left: 20px;
+    left: 24px;
     position: fixed !important;
-    top: 20px;
+    top: 10px;
     z-index:1;
   }
   .text-window-backing {
@@ -57,8 +57,8 @@
     border-radius: 2px;
     left: 20px;
     position: fixed !important;
-    top: 24px;
-    height: 140px;
+    top: 20px;
+    height: 130px;
     z-index:0;
   }
 
