@@ -367,6 +367,32 @@ function init() {
     }
   });
 
+  const water = {
+    scale: 1.0,
+    animation: false,
+    timeScale: 1.0,
+    path: 'models/water.glb',
+    position: { x: 0, y: 0, z: 0 },
+    rotation: { x: 0, y: 0, z: 0 }
+  }
+  loadModel(water).then(model => {
+    if (model) {
+
+      model.traverse((object) => {
+          if ((object as THREE.Mesh).isMesh) {
+            console.log("test");
+            ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).transparent = true;
+            ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).opacity = 0.5;
+            ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).color.set(new THREE.Color(0x00FFFF));
+
+
+          }
+      });
+      scene.add(model);
+    }
+  });
+
+
   const tree = {
     scale: 0.60,
     animation: false,
@@ -495,19 +521,25 @@ function init() {
   });
 
 
-  const waterColor = 0x00FFFF;
-  const waterGeometry = new THREE.PlaneGeometry( 4.50, 4.85);
-  const waterMaterial = new THREE.MeshPhongMaterial({
-                                                  color: waterColor,
-                                                  transparent: true,
-                                                  opacity: 0.5,
-                                                  depthWrite: false, // prevents water from rendering over other objects
-                                                });
-  const water = new THREE.Mesh( waterGeometry, waterMaterial );
-  water.rotation.x = - Math.PI / 2;
-  water.position.y = -0.00019;
+  // const waterColor = 0x00FFFF;
+  // const waterGeometry = new THREE.PlaneGeometry( 4.50, 4.85);
+  // const waterMaterial = new THREE.MeshPhongMaterial({
+  //                                                 color: waterColor,
+  //                                                 transparent: true,
+  //                                                 opacity: 0.5,
+  //                                                 depthWrite: false, // prevents water from rendering over other objects
+  //                                                 side: THREE.DoubleSide,
+  //                                                 shininess: 100,
+  //                                                 reflectivity: 1,
+  //                                                 specular: 0x00FFFF,
+  //                                                 emissive: 0x00FFFF,
 
-  scene.add( water );
+  //                                               });
+  // const water = new THREE.Mesh( waterGeometry, waterMaterial );
+  // water.rotation.x = - Math.PI / 2;
+  // water.position.y = -0.00019;
+
+  // scene.add( water );
 
   const bottomColor = 0x4C4E27;
   const bottomGeometry = new THREE.PlaneGeometry( 4, 4);
