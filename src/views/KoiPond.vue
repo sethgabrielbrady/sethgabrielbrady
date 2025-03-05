@@ -20,8 +20,8 @@
     <div id="koiPond" />
     <div class="text-window green width">
       <p>
-        Welcome! My portfolio page is currently under construction, so please enjoy this koi pond.
-        It was created using Three.js, TypeScript, and Vue 3.
+        Welcome! My portfolio page is currently under construction, so please enjoy this koi pond created with Three.js, Typescript, and Vue3.
+        You can look around using your mouse or touchpad.
       </p>
     </div>
     <div class="text-window-backing width"/>
@@ -55,10 +55,10 @@
   .text-window-backing {
     background-color: #222233b8;
     border-radius: 2px;
-    left: 16px;
+    left: 20px;
     position: fixed !important;
     top: 24px;
-    height: 120px;
+    height: 140px;
     z-index:0;
   }
 
