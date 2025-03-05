@@ -372,7 +372,7 @@ function init() {
     animation: false,
     timeScale: 1.0,
     path: 'models/water.glb',
-    position: { x: 0, y: 0, z: 0 },
+    position: { x: 0, y: -0.00019, z: 0 },
     rotation: { x: 0, y: 0, z: 0 }
   }
   loadModel(water).then(model => {
@@ -382,9 +382,9 @@ function init() {
           if ((object as THREE.Mesh).isMesh) {
             ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).transparent = true;
             ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).depthWrite = false;
-            ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).depthTest = false;
-            ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).side = THREE.DoubleSide;
-            ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).opacity = 0.5;
+            ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).depthTest = true;
+            // ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).side = THREE.DoubleSide;
+            ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).opacity = 0.25;
             ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).color.set(new THREE.Color(0x00FFFF));
           }
       });
