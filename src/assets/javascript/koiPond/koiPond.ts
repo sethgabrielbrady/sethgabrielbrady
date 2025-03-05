@@ -362,7 +362,6 @@ function init() {
   }
   loadModel(pond).then(model => {
     if (model) {
-      model.renderOrder = - Infinity; // ensures pond is rendered first
       scene.add(model);
     }
   });
@@ -388,6 +387,8 @@ function init() {
             ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).color.set(new THREE.Color(0x00FFFF));
           }
       });
+      model.renderOrder = - Infinity; // ensures pond is rendered first
+
       scene.add(model);
     }
   });
