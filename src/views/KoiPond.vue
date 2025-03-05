@@ -16,12 +16,14 @@
 </script>
 
 <template>
-  <div style="width:100vw; height:100vh;">
+  <div>
     <div id="koiPond" />
     <div class="text-window green width">
       <p>
-        Welcome! My portfolio page is currently under construction, so please enjoy this koi pond created with Three.js, Typescript, and Vue3.
-        You can look around using your mouse or touchpad.
+        Welcome to my portfolio page! It is currently under construction,
+        so please enjoy this koi pond created with Three.js, TypeScript,
+        and Vue 3. There's a lot packed into this little scene,
+        so feel free to explore using your mouse or touchpad.
       </p>
     </div>
     <div class="text-window-backing width"/>
@@ -58,7 +60,7 @@
     left: 20px;
     position: fixed !important;
     top: 20px;
-    height: 130px;
+    height: 150px;
     z-index:0;
   }
 
