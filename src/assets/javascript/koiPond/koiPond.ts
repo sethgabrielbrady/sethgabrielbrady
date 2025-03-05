@@ -380,12 +380,12 @@ function init() {
 
       model.traverse((object) => {
           if ((object as THREE.Mesh).isMesh) {
-            console.log("test");
             ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).transparent = true;
+            ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).depthWrite = false;
+            ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).depthTest = false;
+            ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).side = THREE.DoubleSide;
             ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).opacity = 0.5;
             ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).color.set(new THREE.Color(0x00FFFF));
-
-
           }
       });
       scene.add(model);
