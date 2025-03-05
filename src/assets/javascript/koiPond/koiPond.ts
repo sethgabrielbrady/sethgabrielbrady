@@ -108,7 +108,7 @@ function init() {
 
   renderer.setPixelRatio( window.devicePixelRatio );
   renderer.setSize( window.innerWidth, window.innerHeight );
-  renderer.shadowMap.enabled = false;
+  renderer.shadowMap.enabled = true;
 
   const container: HTMLElement = document.getElementById("koiPond")!;
   container.appendChild(renderer.domElement);
@@ -503,7 +503,7 @@ function init() {
                                                 });
   const water = new THREE.Mesh( waterGeometry, waterMaterial );
   water.rotation.x = - Math.PI / 2;
-  water.position.y = -0.0009;
+  water.position.y = -0.00019;
   scene.add( water );
 
   const bottomColor = 0x4C4E27;
@@ -583,7 +583,6 @@ function init() {
     }
   });
 }
-
 
 
 function animate() {
