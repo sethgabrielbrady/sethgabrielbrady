@@ -501,7 +501,7 @@ function init() {
                                                   color: waterColor,
                                                   transparent: true,
                                                   opacity: 0.5,
-                                                  depthWrite: false,
+                                                  depthWrite: false, // prevents water from rendering over other objects
                                                 });
   const water = new THREE.Mesh( waterGeometry, waterMaterial );
   water.rotation.x = - Math.PI / 2;
