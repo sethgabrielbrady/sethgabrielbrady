@@ -372,7 +372,7 @@ function init() {
     animation: false,
     timeScale: 1.0,
     path: 'models/water3.glb',
-    position: { x: 0, y: -0.00019, z: 0 },
+    position: { x: 0, y: -0.02, z: 0 },
     rotation: { x: 0, y: 0, z: 0 }
   }
   loadModel(water).then(model => {
