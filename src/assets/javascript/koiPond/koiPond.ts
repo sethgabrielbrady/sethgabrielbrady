@@ -370,7 +370,7 @@ function init() {
     scale: 1.0,
     animation: false,
     timeScale: 1.0,
-    path: 'models/water.glb',
+    path: 'models/water2.glb',
     position: { x: 0, y: -0.00019, z: 0 },
     rotation: { x: 0, y: 0, z: 0 }
   }
