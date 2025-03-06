@@ -341,7 +341,7 @@ function init() {
     scale: .5,
     animation: true,
     timeScale: 1.0,
-    path: 'models/raccoon.glb',
+    path: 'models/raccoon2.glb',
     position: { x: 2.2, y: 0.1, z: -2.6 },
     rotation: { x: 0, y: 1.5, z: 0 }
   }
@@ -356,7 +356,7 @@ function init() {
     scale: 1.0,
     animation: false,
     timeScale: 1.0,
-    path: 'models/pond3.glb',
+    path: 'models/pond4.glb',
     position: { x: 0, y: 0, z: 0 },
     rotation: { x: 0, y: 0, z: 0 }
   }
