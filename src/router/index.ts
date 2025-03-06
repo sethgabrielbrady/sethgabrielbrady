@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import KoiPond from '../views/KoiPond.vue';
 // import GameBoard from '../views/GameBoard.vue';
-import Voxel from '../views/Voxel.vue';
+// import Voxel from '../views/Voxel.vue';
 
 
 import type { RouteRecordRaw } from 'vue-router';
@@ -23,14 +23,14 @@ const routes: Array<RouteRecordRaw> = [
   //     requiresAuth: false,
   //   },
   // },
-  {
-    path: '/voxel',
-    name: 'Voxel',
-    component: Voxel,
-    meta: {
-      requiresAuth: false,
-    },
-  },
+  // {
+  //   path: '/voxel',
+  //   name: 'Voxel',
+  //   component: Voxel,
+  //   meta: {
+  //     requiresAuth: false,
+  //   },
+  // },
 ];
 
 const router = createRouter({
