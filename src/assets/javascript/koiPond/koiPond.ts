@@ -362,6 +362,8 @@ function init() {
   }
   loadModel(pond).then(model => {
     if (model) {
+      model.renderOrder = - Infinity; // ensures pond is rendered first
+
       scene.add(model);
     }
   });
@@ -382,12 +384,12 @@ function init() {
             ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).transparent = true;
             ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).depthWrite = false;
             ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).depthTest = true;
-            ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).side = THREE.DoubleSide;
+            // ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).side = THREE.DoubleSide;
             ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).opacity = 0.5;
             ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).color.set(new THREE.Color(0x00FFFF));
           }
       });
-      model.renderOrder = - Infinity; // ensures pond is rendered first
+      // model.renderOrder = - Infinity; // ensures pond is rendered first
 
       scene.add(model);
     }
