@@ -52,7 +52,6 @@ function loadModel(modelObj: { path: string; scale: number; animation: boolean; 
             const action = mixer.clipAction(clips[0]);
             action.setEffectiveTimeScale(timeScale); // 2x speed
             action.play();
-
           }
         }
         resolve(model);
@@ -367,26 +366,9 @@ function init() {
     }
   });
 
-  // const pond2 = {
-  //   scale: 1.0,
-  //   animation: false,
-  //   timeScale: 1.0,
-  //   path: 'models/pond4.glb',
-  //   position: { x: 0, y: 0, z: 0 },
-  //   rotation: { x: 0, y: 0, z: 0 }
-  // }
-  // loadModel(pond2).then(model => {
-  //   if (model) {
-  //     model.traverse((object) => {
-  //   });
-  //     model.renderOrder = - Infinity; // ensures pond is rendered first
-
-  //     scene.add(model);
-  //   }
-  // });
 
   const water = {
-    scale: 1.1,
+    scale: 1,
     animation: false,
     timeScale: 1.0,
     path: 'models/water3.glb',
@@ -396,17 +378,16 @@ function init() {
   loadModel(water).then(model => {
     if (model) {
 
-      // model.traverse((object) => {
-      //     if ((object as THREE.Mesh).isMesh) {
-      //       ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).transparent = true;
-      //       ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).depthWrite = false;
-      //       ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).depthTest = true;
-      //       // ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).side = THREE.DoubleSide;
-      //       ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).opacity = 0.5;
-      //       ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).color.set(new THREE.Color(0x00FFFF));
-      //     }
-      // });
-      // model.renderOrder = - Infinity; // ensures pond is rendered first
+      model.traverse((object) => {
+          if ((object as THREE.Mesh).isMesh) {
+            // ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).transparent = true;
+            // ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).depthWrite = false;
+            // ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).depthTest = true;
+            // // ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).side = THREE.DoubleSide;
+            // ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).opacity = 0.5;
+            ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).color.set(new THREE.Color(0x00FFFF));
+          }
+      });
 
       scene.add(model);
     }
