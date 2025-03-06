@@ -371,7 +371,7 @@ function init() {
     scale: 1,
     animation: false,
     timeScale: 1.0,
-    path: 'models/water3.glb',
+    path: 'models/water4.glb',
     position: { x: 0, y: -0.02, z: 0 },
     rotation: { x: 0, y: 0, z: 0 }
   }
@@ -380,12 +380,12 @@ function init() {
 
       model.traverse((object) => {
           if ((object as THREE.Mesh).isMesh) {
-            // ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).transparent = true;
-            // ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).depthWrite = false;
-            // ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).depthTest = true;
-            // // ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).side = THREE.DoubleSide;
-            // ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).opacity = 0.5;
-            ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).color.set(new THREE.Color(0x00FFFF));
+            //((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).transparent = true;
+            ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).depthWrite = false;
+            ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).depthTest = true;
+            // ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).side = THREE.DoubleSide;
+            //((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).opacity = 0.5;
+            ((object as THREE.Mesh).material as THREE.MeshPhysicalMaterial).color.set(new THREE.Color(0x00ffff));
           }
       });
 
