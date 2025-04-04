@@ -5,7 +5,7 @@ Welcome to my GitHub Pages site! This project showcases various features and tec
 ![Site Preview](path/to/your/preview-image.png)
 
 
-www.sethgabrielbrady.com
+https://sethgabrielbrady.com
 
 ## 🌟 Features
 
