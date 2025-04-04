@@ -1,8 +1,11 @@
 # Seth Brady's GitHub Pages Site
 
 Welcome to my GitHub Pages site! This project showcases various features and technologies including JavaScript, TypeScript, Vue 3, and Three.js.
-ww.sethgabrielbrady.com
+
 ![Site Preview](path/to/your/preview-image.png)
+
+
+ww.sethgabrielbrady.com
 
 ## 🌟 Features
 
