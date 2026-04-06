@@ -18,6 +18,7 @@ const interval = 1/60;
 const mixerAnimations: Array<THREE.AnimationMixer> = [];
 const koiGroup = new THREE.Group();
 const dragonflyGroup = new THREE.Group();
+const sceneLights: { sun: THREE.DirectionalLight | null; ambient: THREE.AmbientLight | null; moon: THREE.DirectionalLight | null } = { sun: null, ambient: null, moon: null };
 
 const gltfLoader = new GLTFLoader();
 const raycaster = new THREE.Raycaster();
@@ -29,6 +30,76 @@ const cattailSwayData: SwayData[] = [];
 const lilypadFloatData: Array<{ model: THREE.Object3D; speedX: number; speedZ: number; speedY: number; ampX: number; ampZ: number; ampY: number; phase: number }> = [];
 let logGroup: THREE.Group | null = null;
 const logDrift = { phase: Math.random() * Math.PI * 2 };
+
+// Time-of-day lighting system
+let timeOverride: number | null = null; // null = use real time, 1-24 = manual hour
+
+interface TimeKeyframe {
+  hour: number;
+  skyColor: THREE.Color;
+  sunColor: THREE.Color;
+  sunIntensity: number;
+  ambientColor: THREE.Color;
+  ambientIntensity: number;
+  sunY: number;
+  sunX: number;
+  moonIntensity: number;
+}
+
+const timeKeyframes: TimeKeyframe[] = [
+  { hour: 0,  skyColor: new THREE.Color(0x0a0a1a), sunColor: new THREE.Color(0x1a1a3a), sunIntensity: 0.1, ambientColor: new THREE.Color(0x0a0a2a), ambientIntensity: 0.15, sunY: 0.5, sunX: 0, moonIntensity: 0.8 },
+  { hour: 5,  skyColor: new THREE.Color(0x1a1a3a), sunColor: new THREE.Color(0x3a3a6a), sunIntensity: 0.2, ambientColor: new THREE.Color(0x1a1a3a), ambientIntensity: 0.2, sunY: 1, sunX: -4, moonIntensity: 0.6 },
+  { hour: 6,  skyColor: new THREE.Color(0x4a3055), sunColor: new THREE.Color(0xff8844), sunIntensity: 0.8, ambientColor: new THREE.Color(0x553344), ambientIntensity: 0.3, sunY: 2, sunX: -3, moonIntensity: 0.2 },
+  { hour: 7,  skyColor: new THREE.Color(0x7a5570), sunColor: new THREE.Color(0xffaa66), sunIntensity: 1.2, ambientColor: new THREE.Color(0x886655), ambientIntensity: 0.4, sunY: 3, sunX: -2, moonIntensity: 0 },
+  { hour: 9,  skyColor: new THREE.Color(0x88aacc), sunColor: new THREE.Color(0xffeedd), sunIntensity: 1.8, ambientColor: new THREE.Color(0xaabbcc), ambientIntensity: 0.5, sunY: 4.5, sunX: -1, moonIntensity: 0 },
+  { hour: 12, skyColor: new THREE.Color(0x222233), sunColor: new THREE.Color(0xffffff), sunIntensity: 2.0, ambientColor: new THREE.Color(0xffffff), ambientIntensity: 0.5, sunY: 5, sunX: 0, moonIntensity: 0 },
+  { hour: 15, skyColor: new THREE.Color(0x88aacc), sunColor: new THREE.Color(0xffeedd), sunIntensity: 1.8, ambientColor: new THREE.Color(0xaabbcc), ambientIntensity: 0.5, sunY: 4.5, sunX: 1, moonIntensity: 0 },
+  { hour: 17, skyColor: new THREE.Color(0x9a6650), sunColor: new THREE.Color(0xff8844), sunIntensity: 1.2, ambientColor: new THREE.Color(0x886644), ambientIntensity: 0.4, sunY: 3, sunX: 2, moonIntensity: 0 },
+  { hour: 18, skyColor: new THREE.Color(0x553040), sunColor: new THREE.Color(0xff6633), sunIntensity: 0.8, ambientColor: new THREE.Color(0x443333), ambientIntensity: 0.3, sunY: 2, sunX: 3, moonIntensity: 0.2 },
+  { hour: 19, skyColor: new THREE.Color(0x1a1a3a), sunColor: new THREE.Color(0x3a3a6a), sunIntensity: 0.3, ambientColor: new THREE.Color(0x1a1a3a), ambientIntensity: 0.2, sunY: 1, sunX: 4, moonIntensity: 0.5 },
+  { hour: 21, skyColor: new THREE.Color(0x0a0a1a), sunColor: new THREE.Color(0x1a1a3a), sunIntensity: 0.1, ambientColor: new THREE.Color(0x0a0a2a), ambientIntensity: 0.15, sunY: 0.5, sunX: 0, moonIntensity: 0.8 },
+  { hour: 24, skyColor: new THREE.Color(0x0a0a1a), sunColor: new THREE.Color(0x1a1a3a), sunIntensity: 0.1, ambientColor: new THREE.Color(0x0a0a2a), ambientIntensity: 0.15, sunY: 0.5, sunX: 0, moonIntensity: 0.8 },
+];
+
+function lerpKeyframes(hour: number): TimeKeyframe {
+  const h = ((hour % 24) + 24) % 24;
+  let a = timeKeyframes[0];
+  let b = timeKeyframes[1];
+  for (let i = 0; i < timeKeyframes.length - 1; i++) {
+    if (h >= timeKeyframes[i].hour && h <= timeKeyframes[i + 1].hour) {
+      a = timeKeyframes[i];
+      b = timeKeyframes[i + 1];
+      break;
+    }
+  }
+  const range = b.hour - a.hour || 1;
+  const t = (h - a.hour) / range;
+  return {
+    hour: h,
+    skyColor: a.skyColor.clone().lerp(b.skyColor, t),
+    sunColor: a.sunColor.clone().lerp(b.sunColor, t),
+    sunIntensity: a.sunIntensity + (b.sunIntensity - a.sunIntensity) * t,
+    ambientColor: a.ambientColor.clone().lerp(b.ambientColor, t),
+    ambientIntensity: a.ambientIntensity + (b.ambientIntensity - a.ambientIntensity) * t,
+    sunY: a.sunY + (b.sunY - a.sunY) * t,
+    sunX: a.sunX + (b.sunX - a.sunX) * t,
+    moonIntensity: a.moonIntensity + (b.moonIntensity - a.moonIntensity) * t,
+  };
+}
+
+// Console API for testing
+(window as unknown as Record<string, unknown>).setTime = (hour: number) => {
+  if (hour < 1 || hour > 24) {
+    console.log('Usage: setTime(1-24) — e.g. setTime(6) for sunrise, setTime(12) for noon, setTime(18) for sunset');
+    return;
+  }
+  timeOverride = hour;
+  console.log(`Time set to ${hour}:00`);
+};
+(window as unknown as Record<string, unknown>).resetTime = () => {
+  timeOverride = null;
+  console.log('Time reset to real clock');
+};
 
 // Cache for loaded models — load once, clone many
 const modelCache = new Map<string, { scene: THREE.Group; animations: THREE.AnimationClip[] }>();
@@ -101,19 +172,24 @@ function init() {
   camera.lookAt( scene.position );
 
 
-  const light: THREE.DirectionalLight = new THREE.DirectionalLight( 0xffffff, 2 );
-  light.position.set( 0, 5, 0 );
-  light.castShadow = true;
-  scene.add( light );
+  const sunLight = new THREE.DirectionalLight( 0xffffff, 2 );
+  sunLight.position.set( 0, 5, 0 );
+  sunLight.castShadow = true;
+  sunLight.shadow.mapSize.width = 512;
+  sunLight.shadow.mapSize.height = 512;
+  scene.add( sunLight );
 
-  const directionLight = new THREE.DirectionalLight( 0xffffff, 1 );
-    directionLight.position.set( 0, 5, 0 );
-    directionLight.castShadow = true;
-    directionLight.shadow.mapSize.width = 512;
-    directionLight.shadow.mapSize.height = 512;
+  const ambientLight = new THREE.AmbientLight( 0xffffff, 0.5 );
+  scene.add( ambientLight );
 
-    scene.add( directionLight );
-    scene.add( new THREE.AmbientLight( 0xffffff, 0.5 ) );
+  const moonLight = new THREE.DirectionalLight( 0x8090cc, 0 );
+  moonLight.position.set( 3, 4, -2 );
+  scene.add( moonLight );
+
+  // Store light refs for time-of-day updates
+  sceneLights.sun = sunLight;
+  sceneLights.ambient = ambientLight;
+  sceneLights.moon = moonLight;
 
   renderer = new THREE.WebGLRenderer( {
     antialias: false,
@@ -857,6 +933,23 @@ function render() {
     logGroup.position.z += Math.cos(lt * 0.12) * 0.0003 - Math.cos((lt - interval) * 0.12) * 0.0003;
     logGroup.position.y = Math.sin(lt * 0.25) * 0.003;
     logGroup.rotation.z = Math.sin(lt * 0.2) * 0.005;
+  }
+
+  // Time-of-day lighting
+  const currentHour = timeOverride !== null ? timeOverride : new Date().getHours() + new Date().getMinutes() / 60;
+  const tod = lerpKeyframes(currentHour);
+  scene.background = tod.skyColor;
+  if (sceneLights.sun) {
+    sceneLights.sun.color.copy(tod.sunColor);
+    sceneLights.sun.intensity = tod.sunIntensity;
+    sceneLights.sun.position.set(tod.sunX, tod.sunY, 0);
+  }
+  if (sceneLights.ambient) {
+    sceneLights.ambient.color.copy(tod.ambientColor);
+    sceneLights.ambient.intensity = tod.ambientIntensity;
+  }
+  if (sceneLights.moon) {
+    sceneLights.moon.intensity = tod.moonIntensity;
   }
 
   renderer.render( scene, camera );
