@@ -20,6 +20,15 @@ const koiGroup = new THREE.Group();
 const dragonflyGroup = new THREE.Group();
 
 const gltfLoader = new GLTFLoader();
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+const toadModels: THREE.Object3D[] = [];
+type SwayData = { model: THREE.Object3D; speed: number; amplitude: number; phase: number; disturbance: number };
+const grassSwayData: SwayData[] = [];
+const cattailSwayData: SwayData[] = [];
+const lilypadFloatData: Array<{ model: THREE.Object3D; speedX: number; speedZ: number; speedY: number; ampX: number; ampZ: number; ampY: number; phase: number }> = [];
+let logGroup: THREE.Group | null = null;
+const logDrift = { phase: Math.random() * Math.PI * 2 };
 
 // Cache for loaded models — load once, clone many
 const modelCache = new Map<string, { scene: THREE.Group; animations: THREE.AnimationClip[] }>();
@@ -138,6 +147,7 @@ function init() {
   koiGroup.position.set(0.0, -0.1, 0.0);
   const koiCount = 10;
   const koiArray: THREE.Object3D<THREE.Object3DEventMap>[] = [];
+  const koiMixerMap = new Map<THREE.Object3D, { mixer: THREE.AnimationMixer; baseTimeScale: number }>();
   for (let i = 0; i < koiCount; i++) {
     const koi = {
       scale: rngNum(0.4, 1),
@@ -152,6 +162,7 @@ function init() {
     const whiteKoi = 0xffffff;
     const koiColors = [redKoi, orangeKoi, whiteKoi];
     const randomColor = koiColors[Math.floor(Math.random() * koiColors.length)];
+    const baseTimeScale = koi.timeScale;
     loadModel(koi).then(model => {
       if (model) {
         const koiThreeObj = new THREE.Object3D();
@@ -163,12 +174,26 @@ function init() {
         });
         koiGroup.add(koiThreeObj);
         koiArray.push(koiThreeObj);
+        // The mixer for this koi is the last one pushed by loadModel
+        const mixer = mixerAnimations[mixerAnimations.length - 1];
+        koiMixerMap.set(koiThreeObj, { mixer, baseTimeScale });
       }
     });
   }
   scene.add(koiGroup);
 
   let koiMovingArray: Array<THREE.Object3D<THREE.Object3DEventMap>> = [];
+  const koiActiveTweens = new Map<THREE.Object3D, { pos: TWEEN.Tween<THREE.Vector3>; rot: TWEEN.Tween<THREE.Euler> }>();
+
+  function stopKoiTweens(koi: THREE.Object3D) {
+    const active = koiActiveTweens.get(koi);
+    if (active) {
+      active.pos.stop();
+      active.rot.stop();
+      koiActiveTweens.delete(koi);
+    }
+    koiMovingArray = koiMovingArray.filter((item) => item !== koi);
+  }
 
   function randomizeKoiMovement(koi: THREE.Object3D<THREE.Object3DEventMap>) {
     const startX = koi.position.x;
@@ -184,12 +209,15 @@ function init() {
       .onComplete(() => {
         koi.position.set(targetX, targetY, targetZ);
         koiMovingArray = koiMovingArray.filter((item) => item !== koi);
+        koiActiveTweens.delete(koi);
       })
       .start();
 
     const koiTweenRot = new TWEEN.Tween(koi.rotation);
     koiTweenRot.to({ y: angle }, 3000)
       .start();
+
+    koiActiveTweens.set(koi, { pos: koiTweenPos, rot: koiTweenRot });
   }
 
   // Recursive setTimeout so the interval actually changes over time
@@ -275,9 +303,13 @@ function init() {
       position: { x:rngNum(-2,2), y: grassGroup.position.y, z: rngNum(-2,2) },
       rotation: { x: 0, y: 0, z: 0 }
     }
+    const phase = rngNum(0, Math.PI * 2);
+    const speed = rngNum(0.3, 0.6);
+    const amplitude = rngNum(0.01, 0.03);
     loadModel(grass).then(model => {
       if (model) {
         grassGroup.add(model);
+        grassSwayData.push({ model, speed, amplitude, phase, disturbance: 0 });
       }
     });
   }
@@ -296,9 +328,13 @@ function init() {
       position: { x:rngNum(-1.25,1.25), y: grassGroup.position.y, z: rngNum(-1.25,1.25) },
       rotation: { x: 0, y: 0, z: 0 }
     }
+    const weedPhase = rngNum(0, Math.PI * 2);
+    const weedSpeed = rngNum(0.5, 0.9);
+    const weedAmplitude = rngNum(0.015, 0.035);
     loadModel(weeds).then(model => {
       if (model) {
         weedsGroup.add(model);
+        cattailSwayData.push({ model, speed: weedSpeed, amplitude: weedAmplitude, phase: weedPhase, disturbance: 0 });
       }
     });
   }
@@ -316,9 +352,15 @@ function init() {
       position: { x:rngNum(-1.25,1.25), y: lilipadsGroup.position.y, z: rngNum(-1.25,1.25) },
       rotation: { x: 0, y: rngNum(-1,1), z: 0 }
     }
+    const padPhase1 = rngNum(0, Math.PI * 2);
     loadModel(lilipads).then(model => {
       if (model) {
         lilipadsGroup.add(model);
+        lilypadFloatData.push({
+          model, phase: padPhase1,
+          speedX: rngNum(0.15, 0.3), speedZ: rngNum(0.12, 0.25), speedY: rngNum(0.3, 0.5),
+          ampX: rngNum(0.003, 0.008), ampZ: rngNum(0.003, 0.008), ampY: rngNum(0.001, 0.003),
+        });
       }
     });
   }
@@ -337,9 +379,15 @@ function init() {
       position: { x:rngNum(-1.25,1.25), y: lilipadsGroup2.position.y, z: rngNum(-1.25,1.25) },
       rotation: { x: 0, y: rngNum(-1,1), z: 0 }
     }
+    const padPhase2 = rngNum(0, Math.PI * 2);
     loadModel(lilipads).then(model => {
       if (model) {
         lilipadsGroup2.add(model);
+        lilypadFloatData.push({
+          model, phase: padPhase2,
+          speedX: rngNum(0.15, 0.3), speedZ: rngNum(0.12, 0.25), speedY: rngNum(0.3, 0.5),
+          ampX: rngNum(0.003, 0.008), ampZ: rngNum(0.003, 0.008), ampY: rngNum(0.001, 0.003),
+        });
       }
     });
   }
@@ -442,6 +490,7 @@ function init() {
   loadModel(cattail).then(model => {
     if (model) {
       scene.add(model);
+      cattailSwayData.push({ model, speed: rngNum(0.5, 0.9), amplitude: rngNum(0.015, 0.035), phase: rngNum(0, Math.PI * 2), disturbance: 0 });
     }
   });
 
@@ -456,6 +505,7 @@ function init() {
   loadModel(cattail2).then(model => {
     if (model) {
       scene.add(model);
+      cattailSwayData.push({ model, speed: rngNum(0.5, 0.9), amplitude: rngNum(0.015, 0.035), phase: rngNum(0, Math.PI * 2), disturbance: 0 });
     }
   });
 
@@ -470,20 +520,24 @@ function init() {
   loadModel(rockCattail).then(model => {
     if (model) {
       scene.add(model);
+      cattailSwayData.push({ model, speed: rngNum(0.5, 0.9), amplitude: rngNum(0.015, 0.035), phase: rngNum(0, Math.PI * 2), disturbance: 0 });
     }
   });
+
+  logGroup = new THREE.Group();
+  logGroup.position.set(.5, 0, -1.45);
 
   const log = {
     scale: .5,
     animation: false,
     timeScale: 1,
     path: 'models/log.glb',
-    position: { x: .5, y: 0, z: -1.45 },
+    position: { x: 0, y: 0, z: 0 },
     rotation: { x: 0, y: 0.5, z: 0 }
   }
   loadModel(log).then(model => {
-    if (model) {
-      scene.add(model);
+    if (model && logGroup) {
+      logGroup.add(model);
     }
   });
 
@@ -492,14 +546,16 @@ function init() {
     animation: true,
     timeScale: 0.5,
     path: 'models/toad.glb',
-    position: { x: .5, y: .07, z: -1.5 },
+    position: { x: 0, y: .07, z: -0.05 },
     rotation: { x: 0, y: .5, z: 0 }
   }
   loadModel(logToad).then(model => {
-    if (model) {
-      scene.add(model);
+    if (model && logGroup) {
+      logGroup.add(model);
+      toadModels.push(model);
     }
   });
+  scene.add(logGroup);
 
   const lilyToad = {
     scale: .30,
@@ -513,6 +569,7 @@ function init() {
   loadModel(lilyToad).then(model => {
     if (model) {
       scene.add(model);
+      toadModels.push(model);
     }
   });
 
@@ -530,6 +587,126 @@ function init() {
     }
   });
 
+
+  // Toad hop on click
+  const hoppingToads = new Set<THREE.Object3D>();
+
+  function hopToad(toad: THREE.Object3D) {
+    if (hoppingToads.has(toad)) return;
+    hoppingToads.add(toad);
+
+    const startY = toad.position.y;
+    const hopHeight = startY + 0.3;
+
+    new TWEEN.Tween(toad.position)
+      .to({ y: hopHeight }, 500)
+      .easing(TWEEN.Easing.Quadratic.Out)
+      .chain(
+        new TWEEN.Tween(toad.position)
+          .to({ y: startY }, 500)
+          .easing(TWEEN.Easing.Quadratic.In)
+          .onComplete(() => { hoppingToads.delete(toad); })
+      )
+      .start();
+  }
+
+  // Koi flee on click
+  const fleeingKoi = new Set<THREE.Object3D>();
+
+  function findKoiParent(hit: THREE.Object3D): THREE.Object3D | null {
+    let current: THREE.Object3D | null = hit;
+    while (current) {
+      if (koiArray.includes(current)) return current;
+      current = current.parent;
+    }
+    return null;
+  }
+
+  function fleeKoi(koi: THREE.Object3D) {
+    if (fleeingKoi.has(koi)) return;
+    stopKoiTweens(koi);
+    fleeingKoi.add(koi);
+
+    // Dart away from current position in the opposite direction from center
+    const dirX = koi.position.x || rngNum(-1, 1);
+    const dirZ = koi.position.z || rngNum(-1, 1);
+    const len = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+    const targetX = Math.max(-1.8, Math.min(1.8, koi.position.x + (dirX / len) * 0.75));
+    const targetZ = Math.max(-1.8, Math.min(1.8, koi.position.z + (dirZ / len) * 0.75));
+
+    const angle = Math.atan2(targetX - koi.position.x, targetZ - koi.position.z);
+
+    // Speed up swim animation 6x during flee
+    const entry = koiMixerMap.get(koi);
+    if (entry) {
+      entry.mixer.timeScale = entry.baseTimeScale * 6;
+    }
+
+    new TWEEN.Tween(koi.rotation)
+      .to({ y: angle }, 200)
+      .start();
+
+    new TWEEN.Tween(koi.position)
+      .to({ x: targetX, z: targetZ }, 1000)
+      .easing(TWEEN.Easing.Quadratic.Out)
+      .onComplete(() => {
+        fleeingKoi.delete(koi);
+        // Restore original animation speed
+        if (entry) {
+          entry.mixer.timeScale = entry.baseTimeScale;
+        }
+      })
+      .start();
+  }
+
+  // Disturb grass near a world-space point
+  function disturbGrassNear(x: number, z: number, radius: number) {
+    for (const g of grassSwayData) {
+      const worldPos = new THREE.Vector3();
+      g.model.getWorldPosition(worldPos);
+      const dx = worldPos.x - x;
+      const dz = worldPos.z - z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist < radius) {
+        g.disturbance = Math.max(g.disturbance, 1.0 - dist / radius);
+      }
+    }
+  }
+
+  const onClick = (event: MouseEvent) => {
+    pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+    pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(pointer, camera);
+
+    // Check toads
+    for (const toad of toadModels) {
+      const intersects = raycaster.intersectObject(toad, true);
+      if (intersects.length > 0) {
+        hopToad(toad);
+        return;
+      }
+    }
+
+    // Check koi
+    const koiIntersects = raycaster.intersectObject(koiGroup, true);
+    if (koiIntersects.length > 0) {
+      const koi = findKoiParent(koiIntersects[0].object);
+      if (koi) {
+        fleeKoi(koi);
+        return;
+      }
+    }
+
+    // Check grass
+    const grassIntersects = raycaster.intersectObject(grassGroup, true);
+    if (grassIntersects.length > 0) {
+      const hitPoint = grassIntersects[0].point;
+      disturbGrassNear(hitPoint.x, hitPoint.z, 0.5);
+    }
+  };
+  window.addEventListener('click', onClick);
+  cleanupHandles.listeners.push(['click', onClick as EventListener]);
 
   const bottomColor = 0x4C4E27;
   const bottomGeometry = new THREE.PlaneGeometry( 4, 4);
@@ -624,6 +801,64 @@ function animate() {
 }
 
 function render() {
+  const elapsed = clock.elapsedTime;
+
+  // Shared helper for sway with koi disturbance
+  const _worldPos = new THREE.Vector3();
+
+  function updateSway(items: SwayData[]) {
+    for (let i = 0; i < items.length; i++) {
+      const g = items[i];
+
+      g.model.getWorldPosition(_worldPos);
+      let koiInfluence = 0;
+      for (let k = 0; k < koiGroup.children.length; k++) {
+        const koiChild = koiGroup.children[k];
+        const dx = _worldPos.x - koiChild.position.x;
+        const dz = _worldPos.z - koiChild.position.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        if (dist < 0.4) {
+          koiInfluence = Math.max(koiInfluence, 1.0 - dist / 0.4);
+        }
+      }
+
+      g.disturbance = Math.max(g.disturbance, koiInfluence);
+
+      const totalAmplitude = g.amplitude + g.disturbance * 0.12;
+      const totalSpeed = g.speed + g.disturbance * 1.5;
+      g.model.rotation.x = Math.sin(elapsed * totalSpeed + g.phase) * totalAmplitude;
+      g.model.rotation.z = Math.cos(elapsed * totalSpeed * 0.7 + g.phase) * totalAmplitude * 0.5;
+
+      g.disturbance *= 0.96;
+      if (g.disturbance < 0.001) g.disturbance = 0;
+    }
+  }
+
+  // Grass sway
+  updateSway(grassSwayData);
+
+  // Cattail sway
+  updateSway(cattailSwayData);
+
+  // Lilypad floating
+  for (let i = 0; i < lilypadFloatData.length; i++) {
+    const p = lilypadFloatData[i];
+    const t = elapsed + p.phase;
+    p.model.position.x += Math.sin(t * p.speedX) * p.ampX - Math.sin((t - interval) * p.speedX) * p.ampX;
+    p.model.position.z += Math.cos(t * p.speedZ) * p.ampZ - Math.cos((t - interval) * p.speedZ) * p.ampZ;
+    p.model.position.y += Math.sin(t * p.speedY) * p.ampY - Math.sin((t - interval) * p.speedY) * p.ampY;
+    p.model.rotation.z = Math.sin(t * p.speedX * 0.5) * 0.008;
+  }
+
+  // Log idle drift
+  if (logGroup) {
+    const lt = elapsed + logDrift.phase;
+    logGroup.position.x += Math.sin(lt * 0.15) * 0.0004 - Math.sin((lt - interval) * 0.15) * 0.0004;
+    logGroup.position.z += Math.cos(lt * 0.12) * 0.0003 - Math.cos((lt - interval) * 0.12) * 0.0003;
+    logGroup.position.y = Math.sin(lt * 0.25) * 0.003;
+    logGroup.rotation.z = Math.sin(lt * 0.2) * 0.005;
+  }
+
   renderer.render( scene, camera );
   TWEEN.update();
   if (mixerAnimations.length > 0) {
