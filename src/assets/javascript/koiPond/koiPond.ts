@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import * as TWEEN from '@tweenjs/tween.js';
 import { createText } from 'three/examples/jsm/webxr/Text2D.js';
@@ -14,11 +15,14 @@ let delta: number = 0;
 const clock: THREE.Clock = new THREE.Clock();
 const scene: THREE.Scene = new THREE.Scene();
 const interval = 1/60;
-const mixerAnimations: Array<THREE.AnimationMixer> = []; // animation mixer array
+const mixerAnimations: Array<THREE.AnimationMixer> = [];
 const koiGroup = new THREE.Group();
 const dragonflyGroup = new THREE.Group();
-// const raycaster = new THREE.Raycaster();
 
+const gltfLoader = new GLTFLoader();
+
+// Cache for loaded models — load once, clone many
+const modelCache = new Map<string, { scene: THREE.Group; animations: THREE.AnimationClip[] }>();
 
 function rngNum(min: number, max: number): number {
   return (Math.random() * (max - min) + min);
@@ -26,35 +30,39 @@ function rngNum(min: number, max: number): number {
 
 function loadModel(modelObj: { path: string; scale: number; animation: boolean; timeScale: number; position: { x: number; y: number; z: number; }; rotation: { x: number; y: number; z: number; };  }): Promise<THREE.Object3D | undefined> {
   return new Promise((resolve, reject) => {
-    let model;
-    let mixer: THREE.AnimationMixer;
     const timeScale = modelObj.timeScale;
-    const gltfLoader = new GLTFLoader();
+
+    function applyModel(modelScene: THREE.Group, animations: THREE.AnimationClip[]) {
+      const model = (modelObj.animation
+        ? cloneSkeleton(modelScene)
+        : modelScene.clone()) as THREE.Group;
+      model.scale.set(modelObj.scale, modelObj.scale, modelObj.scale);
+      model.rotateX(modelObj.rotation.x);
+      model.rotateY(modelObj.rotation.y);
+      model.rotateZ(modelObj.rotation.z);
+      model.position.copy(modelObj.position);
+      model.castShadow = true;
+
+      if (modelObj.animation && animations.length > 0) {
+        const mixer = new THREE.AnimationMixer(model);
+        mixerAnimations.push(mixer);
+        const action = mixer.clipAction(animations[0]);
+        action.setEffectiveTimeScale(timeScale);
+        action.play();
+      }
+      resolve(model);
+    }
+
+    const cached = modelCache.get(modelObj.path);
+    if (cached) {
+      applyModel(cached.scene, cached.animations);
+      return;
+    }
+
     gltfLoader.load(modelObj.path,
       (gltf) => {
-        model = gltf.scene;
-        model.scale.x = modelObj.scale;
-        model.scale.y = modelObj.scale;
-        model.scale.z = modelObj.scale;
-        model.rotateX(modelObj.rotation.x);
-        model.rotateY(modelObj.rotation.y);
-        model.rotateZ(modelObj.rotation.z);
-        model.position.copy(modelObj.position);
-        model.castShadow = true;
-        //scene.add(model);
-        if (modelObj.animation) {
-          model.animations;
-          mixer = new THREE.AnimationMixer(model);
-          mixerAnimations.push(mixer);
-          const clips = gltf.animations;
-          if (clips.length > 0) {
-            // Play first animation
-            const action = mixer.clipAction(clips[0]);
-            action.setEffectiveTimeScale(timeScale); // 2x speed
-            action.play();
-          }
-        }
-        resolve(model);
+        modelCache.set(modelObj.path, { scene: gltf.scene, animations: gltf.animations });
+        applyModel(gltf.scene, gltf.animations);
       },
       undefined,
       (error) => {
@@ -65,6 +73,13 @@ function loadModel(modelObj: { path: string; scale: number; animation: boolean; 
   });
 }
 
+// Tracks cleanup handles for teardown
+const cleanupHandles: { intervals: number[]; timeouts: number[]; listeners: Array<[string, EventListener]>; } = {
+  intervals: [],
+  timeouts: [],
+  listeners: [],
+};
+
 function init() {
   scene.background = new THREE.Color( 0x222233 );
 
@@ -73,28 +88,23 @@ function init() {
 
 
   camera = new THREE.OrthographicCamera(- distance * aspect, distance * aspect, distance, - distance, .1, 1000);
-  camera.position.set( 5,5,5 ); // all components equal
-  camera.lookAt( scene.position ); // or the origin
+  camera.position.set( 5,5,5 );
+  camera.lookAt( scene.position );
 
 
-  const lightCube = new THREE.Mesh( new THREE.BoxGeometry( 0.5, 0.5, 0.5 ), new THREE.MeshBasicMaterial( { color: 0xffffff } ) );
   const light: THREE.DirectionalLight = new THREE.DirectionalLight( 0xffffff, 2 );
   light.position.set( 0, 5, 0 );
-  lightCube.position.copy(light.position);
   light.castShadow = true;
   scene.add( light );
-  // scene.add( lightCube );
 
   const directionLight = new THREE.DirectionalLight( 0xffffff, 1 );
     directionLight.position.set( 0, 5, 0 );
-    // directionLight.rotateOnAxis( new THREE.Vector3( 0, 1, 0 ), Math.PI/2  );
     directionLight.castShadow = true;
-    directionLight.shadow.mapSize.width = 16;
-    directionLight.shadow.mapSize.height = 8;
+    directionLight.shadow.mapSize.width = 512;
+    directionLight.shadow.mapSize.height = 512;
 
     scene.add( directionLight );
     scene.add( new THREE.AmbientLight( 0xffffff, 0.5 ) );
-    //scene.add( new THREE.HemisphereLight( 0xffffff, 0x999999, 1 ) );
 
   renderer = new THREE.WebGLRenderer( {
     antialias: false,
@@ -103,8 +113,6 @@ function init() {
     powerPreference: "high-performance",
   });
 
-  renderer.setClearColor
-
   renderer.setPixelRatio( window.devicePixelRatio );
   renderer.setSize( window.innerWidth, window.innerHeight );
   renderer.shadowMap.enabled = true;
@@ -112,13 +120,26 @@ function init() {
   const container: HTMLElement = document.getElementById("koiPond")!;
   container.appendChild(renderer.domElement);
 
+  // Resize handler
+  const onResize = () => {
+    const aspect = window.innerWidth / window.innerHeight;
+    const distance = 4;
+    camera.left = -distance * aspect;
+    camera.right = distance * aspect;
+    camera.top = distance;
+    camera.bottom = -distance;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  };
+  window.addEventListener('resize', onResize);
+  cleanupHandles.listeners.push(['resize', onResize]);
+
 
   koiGroup.position.set(0.0, -0.1, 0.0);
   const koiCount = 10;
   const koiArray: THREE.Object3D<THREE.Object3DEventMap>[] = [];
   for (let i = 0; i < koiCount; i++) {
     const koi = {
-      //scale: 1.0,
       scale: rngNum(0.4, 1),
       animation: true,
       timeScale: rngNum(0.09, 0.24),
@@ -156,46 +177,46 @@ function init() {
     const targetY = rngNum(-0.1, -0.07 );
     const targetZ = rngNum(-1.8, 1.8);
 
-    // Calculate the direction angle
     const angle = Math.atan2(targetX - startX, targetZ - startZ);
 
-    // Create position tween
     const koiTweenPos = new TWEEN.Tween(koi.position);
       koiTweenPos.to({ x: targetX, y: targetY, z: targetZ }, 20000)
       .onComplete(() => {
-        // Set new start position for the next movement cycle
         koi.position.set(targetX, targetY, targetZ);
-        // Remove the koi from the moving array
         koiMovingArray = koiMovingArray.filter((item) => item !== koi);
       })
       .start();
 
-
-    const koiTweenRot = new TWEEN.Tween(koi.rotation); // Create rotation tween (smoothly rotate towards the new direction)
-    koiTweenRot.to({ y: angle }, 3000) // Rotate over 3 seconds for smooth transition
+    const koiTweenRot = new TWEEN.Tween(koi.rotation);
+    koiTweenRot.to({ y: angle }, 3000)
       .start();
   }
 
-  let upodateKoiDeplymentInterval = false; // adjust the koi deployment interval after the initial deployment
-  setTimeout(() => {
-    upodateKoiDeplymentInterval = true;
-  }, 10000);
+  // Recursive setTimeout so the interval actually changes over time
+  let koiDeploymentActive = true;
+  const initialDeploymentDuration = 10000;
+  const startTime = Date.now();
 
-  let koiDeploymentInterval = rngNum(500, 600);
-  setInterval(() => {
-    if (upodateKoiDeplymentInterval) {
-      koiDeploymentInterval = rngNum(10000, 20000);
-    }
+  function scheduleKoiDeployment() {
+    if (!koiDeploymentActive) return;
 
-    const rngKoiIndex = Math.floor(rngNum(0, koiArray.length));
-    const rngKoi = koiArray[rngKoiIndex];
-    if (!koiMovingArray.includes(rngKoi)) {  //if koiMovingArray does not contian the koi, add it to the array
-      koiMovingArray.push(rngKoi);
-      if (rngKoi) {
+    const elapsed = Date.now() - startTime;
+    const delay = elapsed < initialDeploymentDuration
+      ? rngNum(500, 600)
+      : rngNum(10000, 20000);
+
+    const id = window.setTimeout(() => {
+      const rngKoiIndex = Math.floor(rngNum(0, koiArray.length));
+      const rngKoi = koiArray[rngKoiIndex];
+      if (rngKoi && !koiMovingArray.includes(rngKoi)) {
+        koiMovingArray.push(rngKoi);
         randomizeKoiMovement(rngKoi);
       }
-    }
-  }, koiDeploymentInterval);
+      scheduleKoiDeployment();
+    }, delay);
+    cleanupHandles.timeouts.push(id);
+  }
+  scheduleKoiDeployment();
 
 
   dragonflyGroup.position.set(0, 0.25, 0);
@@ -215,38 +236,31 @@ function init() {
   });
   scene.add(dragonflyGroup);
 
-  const dragonflyInterval = rngNum(2000, 4000);
-
-  // combine this and koi into single function
   function randomizeDragonflyMovement(dragonfly: THREE.Object3D<THREE.Object3DEventMap>) {
     const startX = dragonfly.position.x;
     const startZ = dragonfly.position.z;
     const targetX = rngNum(-2.5,2.5);
     const targetZ = rngNum(-2.5,2.5);
 
-    // Calculate the direction angle
     const angle = Math.atan2(targetX - startX, targetZ - startZ);
 
-    // Create position tween
     const dragonflyTweenPos = new TWEEN.Tween(dragonfly.position);
     dragonflyTweenPos.to({ x: targetX, y: dragonflyGroup.position.y, z: targetZ }, 1500)
       .onComplete(() => {
-        // Set new start position for the next movement cycle
         dragonfly.position.set(targetX, dragonflyGroup.position.y, targetZ);
       })
       .start();
 
-
-    const dragonflyTweenRot = new TWEEN.Tween(dragonfly.rotation); // Create rotation tween (smoothly rotate towards the new direction)
-    dragonflyTweenRot.to({ y: angle }, 200) // Rotate over 3 seconds for smooth transition
+    const dragonflyTweenRot = new TWEEN.Tween(dragonfly.rotation);
+    dragonflyTweenRot.to({ y: angle }, 200)
       .start();
   }
   randomizeDragonflyMovement(dragonflyGroup);
 
-  setInterval(() => {
-    // randomizeDragonflyPosition();
+  const dragonflyIntervalId = window.setInterval(() => {
     randomizeDragonflyMovement(dragonflyGroup);
-  }, dragonflyInterval + rngNum(200, 10000));
+  }, rngNum(2000, 4000) + rngNum(200, 10000));
+  cleanupHandles.intervals.push(dragonflyIntervalId);
 
 
   const grassGroup = new THREE.Group();
@@ -263,7 +277,6 @@ function init() {
     }
     loadModel(grass).then(model => {
       if (model) {
-        // const grassThreeObj = new THREE.Object3D();
         grassGroup.add(model);
       }
     });
@@ -274,19 +287,17 @@ function init() {
   const weedsGroup = new THREE.Group();
   weedsGroup.position.set(0.0, -0.270, 0.0);
   const weedsCount = 10;
-  for (let i = 0; i <= weedsCount; i++) {
+  for (let i = 0; i < weedsCount; i++) {
     const weeds = {
       scale: rngNum(.09, 0.46),
       animation: false,
       timeScale: 1.0,
       path: 'models/cattail2.glb',
       position: { x:rngNum(-1.25,1.25), y: grassGroup.position.y, z: rngNum(-1.25,1.25) },
-
       rotation: { x: 0, y: 0, z: 0 }
     }
     loadModel(weeds).then(model => {
       if (model) {
-        // const weedsThreeObj = new THREE.Object3D();
         weedsGroup.add(model);
       }
     });
@@ -296,7 +307,7 @@ function init() {
   const lilipadsGroup = new THREE.Group();
   lilipadsGroup.position.set(0.0, -0.002, 0.0);
   const lilipadsCount = 6;
-  for (let i = 0; i <= lilipadsCount; i++) {
+  for (let i = 0; i < lilipadsCount; i++) {
     const lilipads = {
       scale: rngNum(.09, 0.36),
       animation: false,
@@ -307,7 +318,6 @@ function init() {
     }
     loadModel(lilipads).then(model => {
       if (model) {
-        // const lilipadsThreeObj = new THREE.Object3D();
         lilipadsGroup.add(model);
       }
     });
@@ -318,7 +328,7 @@ function init() {
   const lilipadsGroup2 = new THREE.Group();
   lilipadsGroup2.position.set(0.0, -0.002, 0.0);
   const lilipadsCount2 = 4;
-  for (let i = 0; i <= lilipadsCount2; i++) {
+  for (let i = 0; i < lilipadsCount2; i++) {
     const lilipads = {
       scale: rngNum(.09, 0.36),
       animation: false,
@@ -329,7 +339,6 @@ function init() {
     }
     loadModel(lilipads).then(model => {
       if (model) {
-        // const lilipadsThreeObj = new THREE.Object3D();
         lilipadsGroup2.add(model);
       }
     });
@@ -361,7 +370,7 @@ function init() {
   }
   loadModel(pond).then(model => {
     if (model) {
-      model.renderOrder = - Infinity; // ensures pond is rendered first
+      model.renderOrder = - Infinity;
       scene.add(model);
     }
   });
@@ -522,26 +531,6 @@ function init() {
   });
 
 
-  // const waterColor = 0x00FFFF;
-  // const waterGeometry = new THREE.PlaneGeometry( 4.50, 4.85);
-  // const waterMaterial = new THREE.MeshPhongMaterial({
-  //                                                 color: waterColor,
-  //                                                 transparent: true,
-  //                                                 opacity: 0.5,
-  //                                                 depthWrite: false, // prevents water from rendering over other objects
-  //                                                 side: THREE.DoubleSide,
-  //                                                 shininess: 100,
-  //                                                 reflectivity: 1,
-  //                                                 specular: 0x00FFFF,
-  //                                                 emissive: 0x00FFFF,
-
-  //                                               });
-  // const water = new THREE.Mesh( waterGeometry, waterMaterial );
-  // water.rotation.x = - Math.PI / 2;
-  // water.position.y = -0.00019;
-
-  // scene.add( water );
-
   const bottomColor = 0x4C4E27;
   const bottomGeometry = new THREE.PlaneGeometry( 4, 4);
   const bottomMaterial = new THREE.MeshPhongMaterial({
@@ -556,15 +545,13 @@ function init() {
 
 
   // controls for the camera
-  const orbitEnabled = true;
   const orbitControls = new OrbitControls(camera, renderer.domElement)
   orbitControls.enabled = true;
-  orbitControls.enableRotate = orbitEnabled
-  orbitControls.keyPanSpeed = 60.0 // magic number
+  orbitControls.enableRotate = true;
+  orbitControls.keyPanSpeed = 60.0
   orbitControls.enableZoom = true
 
  //axes helper
-    // axis helper
     const axesHelper = new THREE.AxesHelper( 5 );
     const xText = createText( 'x5', 0.5);
     const xText2 = createText( '-x5', 0.5 );
@@ -576,7 +563,6 @@ function init() {
     const zText4 = createText( "-z2.5", 0.5 );
     const axisGroup = new THREE.Group();
 
-    // update axis text position
     xText.position.set( 5, 1, 0 );
     xText2.position.set( -5, 1, 0 );
     xText3.position.set( 2.5, 1, 0 );
@@ -586,7 +572,6 @@ function init() {
     zText3.position.set( 0, 1, 2.5 );
     zText4.position.set( 0, 1, -2.5 )
 
-    // update axis text rotation
     xText.rotation.x = Math.PI * 2;
     xText2.rotation.x = Math.PI * 2;
     xText3.rotation.x = Math.PI * 2;
@@ -601,11 +586,12 @@ function init() {
     if (showHelper) {
       scene.add(axisGroup);
       scene.add(axesHelper);
-    }else {
+    } else {
       scene.remove(axisGroup);
       scene.remove( axesHelper );
     }
-  window.addEventListener('keydown', (e) => {
+
+  const onKeydown = (e: KeyboardEvent) => {
     if (e.key === 'h') {
       if (showHelper) {
         scene.remove(axisGroup);
@@ -617,12 +603,19 @@ function init() {
         showHelper = true;
       }
     }
-  });
+  };
+  window.addEventListener('keydown', onKeydown);
+  cleanupHandles.listeners.push(['keydown', onKeydown as EventListener]);
+
+  // Return a stop flag for the koi deployment
+  return () => { koiDeploymentActive = false; };
 }
 
 
+let animationFrameId: number;
+
 function animate() {
-  requestAnimationFrame(animate);
+  animationFrameId = requestAnimationFrame(animate);
   delta += clock.getDelta();
   if (delta  > interval) {
     render();
@@ -632,20 +625,39 @@ function animate() {
 
 function render() {
   renderer.render( scene, camera );
-  // updates model animations
+  TWEEN.update();
   if (mixerAnimations.length > 0) {
     for (let i = 0; i < mixerAnimations.length; i++) {
       mixerAnimations[i].update(delta);
     }
-    TWEEN.update();
   }
 }
 
-function koiPond() {
-  init();
+function koiPond(): () => void {
+  const stopKoiDeployment = init();
   animate();
+
+  // Return cleanup function for Vue unmount
+  return () => {
+    stopKoiDeployment();
+    cancelAnimationFrame(animationFrameId);
+
+    for (const id of cleanupHandles.intervals) clearInterval(id);
+    for (const id of cleanupHandles.timeouts) clearTimeout(id);
+    for (const [event, listener] of cleanupHandles.listeners) {
+      window.removeEventListener(event, listener);
+    }
+
+    cleanupHandles.intervals.length = 0;
+    cleanupHandles.timeouts.length = 0;
+    cleanupHandles.listeners.length = 0;
+
+    renderer.dispose();
+    renderer.domElement.remove();
+    modelCache.clear();
+    mixerAnimations.length = 0;
+  };
 }
 
 
 export { koiPond };
-

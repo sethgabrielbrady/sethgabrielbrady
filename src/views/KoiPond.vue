@@ -6,11 +6,18 @@
       return {
         currentId: '',
         appLaunched: true,
-        show: true
+        show: true,
+        cleanup: null,
       }
     },
     mounted() {
-      koiPond();
+      this.cleanup = koiPond();
+    },
+    beforeUnmount() {
+      if (this.cleanup) {
+        this.cleanup();
+        this.cleanup = null;
+      }
     },
   }
 </script>
